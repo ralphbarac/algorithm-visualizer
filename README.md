@@ -4,11 +4,11 @@
 
 This project is the base for a pathfinding algorithm visualizer. It currently runs Dijkstra's algorithm on the graph from start (the red) to end (the green) nodes, highlighting in yellow the shortest path and in light blue every visited node.
 
-++ Known Bugs
+## Known Bugs
 
 Clicking and dragging to add walls is a little bit janky currently.
 
-++ To Dos
+## To Dos
 
 - Smoothing out the animations
 - Making the grid larger
