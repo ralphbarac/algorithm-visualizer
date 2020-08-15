@@ -1,24 +1,17 @@
 # algorithm-visualizer
 
-## Project setup
-```
-npm install
-```
+## Description
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+This project is the base for a pathfinding algorithm visualizer. It currently runs Dijkstra's algorithm on the graph from start (the red) to end (the green) nodes, highlighting in yellow the shortest path and in light blue every visited node.
 
-### Compiles and minifies for production
-```
-npm run build
-```
+++ Known Bugs
 
-### Lints and fixes files
-```
-npm run lint
-```
+Clicking and dragging to add walls is a little bit janky currently.
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+++ To Dos
+
+- Smoothing out the animations
+- Making the grid larger
+- Adding more pathfinding algorithms
+- Allowing the user to move the start and end nodes around (as well as adding weighted nodes)
+- Potentially adding random wall generation
