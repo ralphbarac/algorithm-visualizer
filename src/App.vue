@@ -14,8 +14,4 @@ export default {
 </script>
 
 <style>
-.button-generate {
-  margin: 1rem 1rem 1rem 1rem;
-  cursor: pointer;
-}
 </style>

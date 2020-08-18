@@ -15,9 +15,9 @@ export default {
       } else if (this.node.isWall) {
         return 'wallNode'
       } else if (this.node.isShort) {
-        return 'shortNode'
+        return this.computeShort()
       } else if (this.node.isVisited) {
-        return 'visitedNode'
+        return this.computeVisited()
       } else { return 'none' }
     }
   },
@@ -34,6 +34,14 @@ export default {
     },
     mouseEnter: function () {
       eventBus.$emit('mouseEnter', this)
+    },
+    computeShort: function () {
+      setTimeout(null, this.node.distance * 100)
+      return 'shortNode'
+    },
+    computeVisited: function () {
+      setTimeout(null, this.node.distance * 50)
+      return 'visitedNode'
     }
   },
   props: ['node']

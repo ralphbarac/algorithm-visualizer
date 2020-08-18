@@ -45,9 +45,9 @@ export default {
   methods: {
     createGrid: function () {
       const grid = []
-      for (let row = 0; row < 20; row++) {
+      for (let row = 0; row < 25; row++) {
         const currentRow = []
-        for (let col = 0; col < 20; col++) {
+        for (let col = 0; col < 25; col++) {
           currentRow.push(this.createNode(row, col))
         }
         grid.push(currentRow)
@@ -82,7 +82,7 @@ export default {
       const visitedNodesInOrder = []
       startNode.distance = 0
       const unvisitedNodes = this.getAllNodes(grid)
-      while (unvisitedNodes.length * 2) {
+      while (unvisitedNodes.length) {
         this.sortNodesByDistance(unvisitedNodes)
         const closestNode = unvisitedNodes.shift()
         if (closestNode.isWall) continue
@@ -143,7 +143,7 @@ export default {
         if (i === visitedNodesInOrder.length) {
           setTimeout(() => {
             this.animateShortestPath(nodesInShortestPath)
-          }, 10 * i)
+          }, 5 * i)
           return
         }
         setTimeout(() => {
@@ -153,13 +153,12 @@ export default {
       }
     },
     animateShortestPath: function (nodesInShortestPath) {
-      for (let i = 0; i < nodesInShortestPath; ++i) {
+      for (let i = 0; i < nodesInShortestPath.length; ++i) {
         setTimeout(() => {
           const node = nodesInShortestPath[i]
           node.nodeShort = true
         }, 50 * i)
       }
-      console.log(nodesInShortestPath)
     },
     resetBoard: function () {
       this.grid = this.createGrid()
