@@ -1,87 +1,101 @@
 <template>
 <div class="container">
-  <div class="header-menu">
-    <button class="button" @click="visualizeDijkstra()">Dijskstras!</button>
-    <button class="button" @click="resetBoard()">Reset Board</button>
-  </div>
-  <div class="grid">
-    <div v-for="(row, i) in this.grid" :key="i">
-      <div v-for="(node, j) in row" :key="j"><node
-                                                :node="grid[j][i]"
-                                                ></node></div>
+    <div class="grid">
+      <tbody>
+        <tr v-for='i in column' :id="'column' + '-' + i" :key='i'>
+          <td class="node" v-for='j in row' :id="i + '-' + j" :key='j' @mouseenter="handleMouseEnter(i + '-' + j)" @click="handleClick(i + '-' + j)"></td>
+        </tr>
+      </tbody>
     </div>
-  </div>
+    <div class="button-menu">
+      <button class="button" @click="dijkstras()">Dijskstras!</button>
+      <button class="button" @click="resetBoard()">Reset Board</button>
+    </div>
 </div>
 </template>
 
 <script>
-import Node from './Node.vue'
-import { eventBus } from '../main.js'
-const START_NODE_ROW = 12
-const START_NODE_COL = 12
-const FINISH_NODE_ROW = 5
-const FINISH_NODE_COL = 5
 export default {
-  created: function () {
-    eventBus.$on('mouseDown', (node) => {
-      this.handleMouseDown(node)
-    })
-    eventBus.$on('mouseUp', (node) => {
-      this.handleMouseUp()
-    })
-    eventBus.$on('mouseEnter', (node) => {
-      this.handleMouseEnter(node)
-    })
+  mounted () {
+    document.getElementById(String(this.startNode[0]) + String('-') + String(this.startNode[1])).classList.add('startNode')
+    document.getElementById(String(this.finishNode[0]) + String('-') + String(this.finishNode[1])).classList.add('endNode')
   },
-  components: {
-    Node
+  computed: {
+    row: function () {
+      return Array.from({ length: this.numRows }, (x, i) => i)
+    },
+    column: function () {
+      return Array.from({ length: this.numCols }, (x, i) => i)
+    },
+    nodes: function () {
+      return Array(this.numCols).fill(null).map(() => new Array(this.numRows).fill(null))
+    }
   },
   data: function () {
     return {
-      grid: this.createGrid(),
-      mouseisPressed: false
+      startNode: [2, 2], // Column, Row
+      finishNode: [28, 20], // Column, Row
+      numRows: 25,
+      numCols: 30,
+      isDrawing: false
     }
   },
   methods: {
-    createGrid: function () {
-      const grid = []
-      for (let row = 0; row < 25; row++) {
-        const currentRow = []
-        for (let col = 0; col < 25; col++) {
-          currentRow.push(this.createNode(row, col))
+    createGraph: function () {
+      for (let i = 0; i < this.numCols; ++i) {
+        for (let j = 0; j < this.numRows; ++j) {
+          const id = document.getElementById(String(i) + String('-') + String(j)).id
+          this.nodes[i][j] = {
+            name: id,
+            row: i,
+            col: j,
+            distance: Infinity,
+            isWall: false,
+            isStart: false,
+            isEnd: false,
+            isVisited: false,
+            isShort: false,
+            previousNode: null
+          }
+          if (document.getElementById(id).classList.contains('wallNode')) {
+            this.nodes[i][j].isWall = true
+          }
+          if (document.getElementById(id).classList.contains('startNode')) {
+            this.nodes[i][j].isStart = true
+          }
+          if (document.getElementById(id).classList.contains('endNode')) {
+            this.nodes[i][j].isEnd = true
+          }
         }
-        grid.push(currentRow)
-      }
-      return grid
-    },
-    createNode: function (row, col) {
-      return {
-        index: (row, col),
-        col,
-        row,
-        isStart: row === START_NODE_ROW && col === START_NODE_COL,
-        isFinish: row === FINISH_NODE_ROW && col === FINISH_NODE_COL,
-        distance: Infinity,
-        isVisited: false,
-        isWall: false,
-        isShort: false,
-        previousNode: null
       }
     },
-    handleMouseDown: function (node) {
-      this.mouseisPressed = true
-      node.node.isWall = !node.node.isWall
+    handleClick: function (id) {
+      if (!this.isDrawing) {
+        this.isDrawing = true
+        const node = document.getElementById(id)
+        if (!node.classList.contains('wallNode')) {
+          node.classList.add('wallNode')
+        }
+      } else {
+        this.isDrawing = false
+      }
     },
-    handleMouseEnter: function (node) {
-      if (this.mouseisPressed) { node.node.isWall = !node.node.isWall }
+    handleMouseEnter: function (id) {
+      if (this.isDrawing) {
+        const node = document.getElementById(id)
+        if (!node.classList.contains('wallNode')) {
+          node.classList.add('wallNode')
+        }
+      }
     },
-    handleMouseUp: function () {
-      this.mouseisPressed = false
-    },
-    dijkstras: function (grid, startNode, finishNode) {
+    dijkstras: function () {
+      this.createGraph()
+      const graph = this.nodes
+      const startNode = this.nodes[this.startNode[0]][this.startNode[1]]
+      const finishNode = this.nodes[this.finishNode[0]][this.finishNode[1]]
       const visitedNodesInOrder = []
       startNode.distance = 0
-      const unvisitedNodes = this.getAllNodes(grid)
+      const unvisitedNodes = this.getAllNodes(graph)
       while (unvisitedNodes.length) {
         this.sortNodesByDistance(unvisitedNodes)
         const closestNode = unvisitedNodes.shift()
@@ -89,13 +103,32 @@ export default {
         if (closestNode.distance === Infinity) return visitedNodesInOrder
         closestNode.isVisited = true
         visitedNodesInOrder.push(closestNode)
-        if (closestNode === finishNode) return visitedNodesInOrder
-        this.updateUnvisitedNeighbours(closestNode, grid)
+        setTimeout(() => {
+          if (!closestNode.isStart && !closestNode.isEnd) {
+            document.getElementById(String(closestNode.row) + String('-') + String(closestNode.col)).classList.add('visitedNode')
+          }
+        }, 100 * closestNode.distance)
+        if (closestNode === finishNode) {
+          setTimeout(() => {
+            const shortestPath = this.shortestPath(finishNode)
+            setTimeout(() => {
+              shortestPath.forEach(el => {
+                setTimeout(() => {
+                  if (!el.isStart && !el.isEnd) {
+                    document.getElementById(String(el.row) + String('-') + String(el.col)).classList.add('shortNode')
+                  }
+                }, 50 * el.distance)
+              })
+            }, 50 * closestNode.distance)
+          })
+          return visitedNodesInOrder
+        }
+        this.updateUnvisitedNeighbours(closestNode, graph)
       }
     },
-    getAllNodes: function (grid) {
+    getAllNodes: function (graph) {
       const nodes = []
-      for (const row of grid) {
+      for (const row of graph) {
         for (const node of row) {
           nodes.push(node)
         }
@@ -105,20 +138,20 @@ export default {
     sortNodesByDistance: function (unvisitedNodes) {
       unvisitedNodes.sort((nodeA, nodeB) => nodeA.distance - nodeB.distance)
     },
-    updateUnvisitedNeighbours: function (node, grid) {
-      const unvisitedNeighbours = this.getUnvisitedNieghbours(node, grid)
+    updateUnvisitedNeighbours: function (node, graph) {
+      const unvisitedNeighbours = this.getUnvisitedNeighbours(node, graph)
       for (const neighbour of unvisitedNeighbours) {
         neighbour.distance = node.distance + 1
         neighbour.previousNode = node
       }
     },
-    getUnvisitedNieghbours: function (node, grid) {
+    getUnvisitedNeighbours: function (node, graph) {
       const neighbours = []
       const { col, row } = node
-      if (row > 0) neighbours.push(grid[row - 1][col])
-      if (row < grid.length - 1) neighbours.push(grid[row + 1][col])
-      if (col > 0) neighbours.push(grid[row][col - 1])
-      if (col < grid[0].length - 1) neighbours.push(grid[row][col + 1])
+      if (row > 0) neighbours.push(graph[row - 1][col])
+      if (row < graph.length - 1) neighbours.push(graph[row + 1][col])
+      if (col > 0) neighbours.push(graph[row][col - 1])
+      if (col < graph[0].length - 1) neighbours.push(graph[row][col + 1])
       return neighbours.filter(neighbour => !neighbour.isVisited)
     },
     shortestPath: function (finishNode) {
@@ -131,61 +164,129 @@ export default {
       }
       return nodesInShortestPath
     },
-    visualizeDijkstra: function () {
-      const startNode = this.grid[START_NODE_ROW][START_NODE_COL]
-      const finishNode = this.grid[FINISH_NODE_ROW][FINISH_NODE_COL]
-      const visitedNodesInOrder = this.dijkstras(this.grid, startNode, finishNode)
-      const nodesInShortestPath = this.shortestPath(finishNode)
-      this.animateDijkstra(visitedNodesInOrder, nodesInShortestPath)
-    },
-    animateDijkstra: function (visitedNodesInOrder, nodesInShortestPath) {
-      for (let i = 0; i <= visitedNodesInOrder.length; ++i) {
-        if (i === visitedNodesInOrder.length) {
-          setTimeout(() => {
-            this.animateShortestPath(nodesInShortestPath)
-          }, 5 * i)
-          return
-        }
-        setTimeout(() => {
-          const node = visitedNodesInOrder[i]
-          node.nodeVisited = true
-        }, 10 * i)
-      }
-    },
-    animateShortestPath: function (nodesInShortestPath) {
-      for (let i = 0; i < nodesInShortestPath.length; ++i) {
-        setTimeout(() => {
-          const node = nodesInShortestPath[i]
-          node.nodeShort = true
-        }, 50 * i)
-      }
-    },
     resetBoard: function () {
-      this.grid = this.createGrid()
+      for (let i = 0; i < this.numCols; ++i) {
+        for (let j = 0; j < this.numRows; ++j) {
+          const node = document.getElementById(String(i) + String('-') + String(j))
+          node.classList.remove('wallNode', 'shortNode', 'visitedNode')
+        }
+      }
+      this.createGraph()
     }
   }
+
 }
 </script>
 
 <style>
+
+.node {
+  border: 1px solid black;
+  height: 2rem;
+  width: 2rem;
+  margin: 0 auto;
+  cursor: pointer;
+  display: flex;
+  background-color: white;
+}
+.wallNode {
+  animation-name: wallAnimation;
+  animation-duration: 0.3s;
+  animation-timing-function: ease-out;
+  animation-delay: 0;
+  animation-direction: alternate;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+.startNode {
+  background-color: red;
+}
+.endNode {
+  background-color: green;
+}
+.visitedNode {
+  animation-name: visitedAnimation;
+  animation-duration: 1.5s;
+  animation-timing-function: ease-out;
+  animation-delay: 0;
+  animation-direction: alternate;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+.shortNode {
+  animation-name: shortestPath;
+  animation-duration: 1.5s;
+  animation-timing-function: ease-out;
+  animation-delay: 0;
+  animation-direction: alternate;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+@keyframes visitedAnimation {
+  0% {
+    transform: scale(0.3);
+    background-color: rgba(0, 0, 66, 0.75);
+    border-radius: 100%;
+  }
+  50% {
+    background-color: rgba(17, 104, 217, 0.75);
+  }
+  75% {
+    transform: scale(1.2);
+    background-color: rgba(0, 217, 159, 0.75);
+  }
+  100% {
+    transform: scale(1);
+    background-color: rgba(0, 190, 218, 0.75);
+  }
+}
+@keyframes shortestPath {
+  0% {
+    transform: scale(0.6);
+    background-color: rgb(255, 254, 106);
+    border-radius: 80%;
+  }
+  50% {
+    transform: scale(0.8);
+    background-color: rgb(255, 254, 106);
+  }
+  100% {
+    transform: scale(1);
+    background-color: rgb(255, 254, 106);
+  }
+}
+@keyframes wallAnimation {
+  0% {
+    transform: scale(.3);
+    background-color: rgb(12, 53, 71);
+  }
+  50% {
+    transform: scale(1.2);
+    background-color: rgb(12, 53, 71);
+  }
+  100% {
+    transform: scale(1.0);
+    background-color: rgb(12, 53, 71);
+  }
+}
+
 .container {
   display: flex;
   flex-direction: column;
+  width: 80%;
+  justify-content: center;
   align-items: center;
+  align-self: center;
+  justify-self: center;
 }
-.header-menu {
+
+.grid tbody{
   display: flex;
   flex-direction: row;
-}
-.button {
-  cursor: pointer;
-  margin: 1rem;
-}
-.grid {
-  display: flex;
-  flex-wrap: nowrap;
-  margin: 0 auto;
-  padding: 0 auto;
+  flex-wrap: wrap;
 }
 
 </style>
