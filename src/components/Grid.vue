@@ -37,10 +37,34 @@ export default {
       finishNode: [28, 20], // Column, Row
       numRows: 25,
       numCols: 30,
-      isDrawing: false
+      isDrawing: false,
+      running: false
     }
   },
   methods: {
+    // This function is algorithm agnostic and animates all visited nodes of the chosen algorithm.
+    animateVisitedNode: function (node) {
+      setTimeout(() => {
+        if (!node.isStart && !node.isEnd) {
+          document.getElementById(String(node.row) + String('-') + String(node.col)).classList.add('visitedNode')
+        }
+      }, 100 * node.distance)
+    },
+    // This function is algorithm agnostic and animates all shortest path nodes of the chosen algorithm.
+    animateShortestPath: function (node) {
+      setTimeout(() => {
+        const shortestPath = this.shortestPath(node)
+        setTimeout(() => {
+          shortestPath.forEach(el => {
+            setTimeout(() => {
+              if (!el.isStart && !el.isEnd) {
+                document.getElementById(String(el.row) + String('-') + String(el.col)).classList.add('shortNode')
+              }
+            }, 50 * el.distance)
+          })
+        }, 100 * node.distance)
+      })
+    },
     createGraph: function () {
       for (let i = 0; i < this.numCols; ++i) {
         for (let j = 0; j < this.numRows; ++j) {
@@ -100,27 +124,13 @@ export default {
         this.sortNodesByDistance(unvisitedNodes)
         const closestNode = unvisitedNodes.shift()
         if (closestNode.isWall) continue
-        if (closestNode.distance === Infinity) return visitedNodesInOrder
         closestNode.isVisited = true
         visitedNodesInOrder.push(closestNode)
-        setTimeout(() => {
-          if (!closestNode.isStart && !closestNode.isEnd) {
-            document.getElementById(String(closestNode.row) + String('-') + String(closestNode.col)).classList.add('visitedNode')
-          }
-        }, 100 * closestNode.distance)
+        this.animateVisitedNode(closestNode)
         if (closestNode === finishNode) {
           setTimeout(() => {
-            const shortestPath = this.shortestPath(finishNode)
-            setTimeout(() => {
-              shortestPath.forEach(el => {
-                setTimeout(() => {
-                  if (!el.isStart && !el.isEnd) {
-                    document.getElementById(String(el.row) + String('-') + String(el.col)).classList.add('shortNode')
-                  }
-                }, 50 * el.distance)
-              })
-            }, 50 * closestNode.distance)
-          })
+            this.animateShortestPath(closestNode)
+          }, 200)
           return visitedNodesInOrder
         }
         this.updateUnvisitedNeighbours(closestNode, graph)
