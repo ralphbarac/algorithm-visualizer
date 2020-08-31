@@ -41,7 +41,7 @@ export default {
   data: function () {
     return {
       startNode: [15, 15], // Column, Row
-      finishNode: [10, 10], // Column, Row
+      finishNode: [62, 29], // Column, Row
       numRows: 35,
       numCols: 65,
       isDrawing: false,
