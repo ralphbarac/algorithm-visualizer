@@ -4,8 +4,10 @@
     <div class="header-container">
       <h1 class="title">Pathfinding Visualizer</h1>
       <div class="button-container">
-        <button class="button" @click="dijkstras()">Dijskstras</button>
+        <button class="button" @click="dijkstras()">Dijkstras</button>
         <button class="button" @click="depthFirstSearch(), dfs=true">DFS</button>
+        <button class="button" @click="astar()">A* Search</button>
+        <!-- <button class="button" @click="divide(nodes, numRows, numCols)">Generate Maze</button> -->
         <button class="button" @click="resetBoard()">Reset Board</button>
       </div>
     </div>
@@ -24,8 +26,11 @@
 <script>
 export default {
   mounted () {
-    document.getElementById(String(this.startNode[0]) + String('-') + String(this.startNode[1])).classList.add('startNode')
-    document.getElementById(String(this.finishNode[0]) + String('-') + String(this.finishNode[1])).classList.add('endNode')
+    const startNode = document.getElementById(String(this.startNode[0]) + String('-') + String(this.startNode[1]))
+    startNode.classList.add('startNode')
+    const endNode = document.getElementById(String(this.finishNode[0]) + String('-') + String(this.finishNode[1]))
+    endNode.classList.add('endNode')
+    this.createGraph(this.numRows, this.numCols)
   },
   computed: {
     row: function () {
@@ -41,7 +46,7 @@ export default {
   data: function () {
     return {
       startNode: [15, 15], // Column, Row
-      finishNode: [62, 29], // Column, Row
+      finishNode: [59, 22], // Column, Row
       numRows: 35,
       numCols: 65,
       isDrawing: false,
@@ -60,10 +65,13 @@ export default {
     },
     // This function is algorithm agnostic and animates all shortest path nodes of the chosen algorithm.
     animateShortestPath: function (node) {
+      console.log(node.distance)
       setTimeout(() => {
         const shortestPath = this.shortestPath(node)
+        console.log(shortestPath)
         setTimeout(() => {
           shortestPath.forEach(el => {
+            console.log(el.distance)
             setTimeout(() => {
               if (!el.isStart && !el.isEnd) {
                 document.getElementById(String(el.row) + String('-') + String(el.col)).classList.add('shortNode')
@@ -72,10 +80,43 @@ export default {
           })
         }, 100 * node.distance)
       })
+      console.log('test')
     },
-    createGraph: function () {
-      for (let i = 0; i < this.numCols; ++i) {
-        for (let j = 0; j < this.numRows; ++j) {
+    astar: function () {
+      this.createGraph(this.numRows, this.numCols)
+      const graph = this.nodes
+      const startNode = graph[this.startNode[0]][this.startNode[1]]
+      const finishNode = graph[this.finishNode[0]][this.finishNode[1]]
+      const openList = []
+      openList.push(startNode)
+      startNode.g = 0
+      startNode.f = this.manhattanDistance(startNode, finishNode)
+      startNode.isVisited = true
+
+      while (openList.length > 0) {
+        const node = this.getLowestF(openList)
+        if (node.isEnd) {
+          this.animateShortestPath(node)
+          return
+        }
+        openList.splice(openList.indexOf(node), 1)
+        const neighbours = this.getUnvisitedNeighbours(node, graph)
+        neighbours.forEach(neighbour => {
+          neighbour.previousNode = node
+          neighbour.g = node.g + 1
+          neighbour.distance = neighbour.g // This is for consistency with dijkstras. It's the same as g but g is standard language for a*
+          neighbour.h = this.manhattanDistance(neighbour, finishNode)
+          neighbour.f = neighbour.g + neighbour.h
+          neighbour.isVisited = true
+          this.animateVisitedNode(neighbour)
+          if (!openList.includes(neighbour)) { openList.push(neighbour) }
+        })
+      }
+      console.log('done')
+    },
+    createGraph: function (rows, cols) {
+      for (let i = 0; i < cols; ++i) {
+        for (let j = 0; j < rows; ++j) {
           const id = document.getElementById(String(i) + String('-') + String(j)).id
           this.nodes[i][j] = {
             name: id,
@@ -87,7 +128,10 @@ export default {
             isEnd: false,
             isVisited: false,
             isShort: false,
-            previousNode: null
+            previousNode: null,
+            f: Infinity,
+            g: Infinity,
+            h: 0
           }
           if (document.getElementById(id).classList.contains('wallNode')) {
             this.nodes[i][j].isWall = true
@@ -99,6 +143,110 @@ export default {
             this.nodes[i][j].isEnd = true
           }
         }
+      }
+    },
+    getLowestF: function (array) {
+      let node = array[0]
+      for (let i = 0; i < array.length; ++i) {
+        if (array[i].f < node.f) { node = array[i] }
+      }
+      return node
+    },
+    // Somewhere along the way rows and columns got confused - this will be fixed for clarity later on.
+    divide: function (graph, height, width) {
+      if (width < 3 || height < 3) {
+        return
+      }
+      let vertical = Boolean(width > height)
+      if (width === height) {
+        const flip = Math.floor(Math.random() * 2)
+        if (flip === 0) {
+          vertical = true
+        } else {
+          vertical = false
+        }
+      }
+      const node = graph[Math.floor(width / 2)][Math.floor(height / 2)]
+      let holeX = Math.floor(Math.random() * width)
+      while (holeX === Math.floor(width / 2)) {
+        holeX = Math.floor(Math.random() * width)
+      }
+      let holeY = Math.floor(Math.random() * height)
+      while (holeY === Math.floor(height / 2)) {
+        holeY = Math.floor(Math.random() * height)
+      }
+      const hole = graph[holeX][holeY]
+      hole.isHole = true
+      if (vertical) {
+        graph.forEach(row => {
+          row.forEach(n => {
+            if (n.row === node.row && !n.isStart && !n.isEnd && n.col !== hole.col) {
+              setTimeout(() => {
+                n.isWall = true
+                document.getElementById(n.name).classList.add('wallNode')
+              }, n.col * 20)
+            }
+          })
+        })
+        const rightGraph = []
+        const leftGraph = []
+        for (let i = 0; i < graph.length; ++i) {
+          const rightRow = []
+          const leftRow = []
+          for (let j = 0; j < graph[i].length; ++j) {
+            if (i > Math.floor(width / 2) && j < height) {
+              rightRow.push(graph[i][j])
+            } else if (i < Math.floor(width / 2) && j < height) {
+              leftRow.push(graph[i][j])
+            }
+          }
+          // It's 4AM don't judge me
+          if (rightRow.length !== 0) {
+            rightGraph.push(rightRow)
+          }
+          if (leftRow.length !== 0) {
+            leftGraph.push(leftRow)
+          }
+        }
+        setTimeout(() => {
+          this.divide(rightGraph, height, rightGraph.length)
+        }, height * 5)
+        setTimeout(() => {
+          this.divide(leftGraph, height, rightGraph.length)
+        }, height * 5)
+      } else {
+        graph.forEach(row => {
+          row.forEach(n => {
+            if (n.col === node.col && !n.isStart && !n.isEnd && n.row !== hole.row) {
+              setTimeout(() => {
+                n.isWall = true
+                document.getElementById(n.name).classList.add('wallNode')
+              }, n.row * 20)
+            }
+          })
+        })
+        const upperGraph = []
+        const lowerGraph = []
+
+        for (let i = 0; i < graph.length; ++i) {
+          const upRow = []
+          const lowRow = []
+          for (let j = 0; j < graph[i].length; ++j) {
+            if (i < width && j < Math.floor(height / 2)) {
+              upRow.push(graph[i][j])
+            } else if (i < width && j > Math.floor(height / 2)) {
+              lowRow.push(graph[i][j])
+            }
+          }
+          upperGraph.push(upRow)
+          lowerGraph.push(lowRow)
+        }
+        setTimeout(() => {
+          this.divide(upperGraph, upperGraph[0].length, width)
+        }, width * 5)
+        setTimeout(() => {
+          this.divide(lowerGraph, lowerGraph[0].length, width)
+        }, width * 5)
       }
     },
     handleClick: function (id) {
@@ -120,10 +268,20 @@ export default {
         }
       }
     },
+    // Somewhere along the lines rows and column got confused. Will be fixing that for clarity later on.
+    getRow: function (graph, rowIndex) {
+      const row = []
+      graph.forEach(col => {
+        col.forEach(node => {
+          if (node.col === rowIndex) { row.push(node) }
+        })
+      })
+      return row
+    },
     dijkstras: function () {
-      this.createGraph()
+      this.createGraph(this.numRows, this.numCols)
       const graph = this.nodes
-      const startNode = this.nodes[this.startNode[0]][this.startNode[1]]
+      const startNode = graph[this.startNode[0]][this.startNode[1]]
       const visitedNodesInOrder = []
       startNode.distance = 0
       const unvisitedNodes = this.getAllNodes(graph)
@@ -145,18 +303,14 @@ export default {
       }
     },
     depthFirstSearch: function () {
-      this.createGraph()
+      this.createGraph(this.numRows, this.numCols)
       const graph = this.nodes
-      const startNode = this.nodes[this.startNode[0]][this.startNode[1]]
-      const path = []
+      const startNode = graph[this.startNode[0]][this.startNode[1]]
       const stack = []
       let counter = 0
       stack.push(startNode)
       while (stack.length !== 0) {
         const node = stack.pop()
-        node.previousNode = path.pop()
-        path.push(node.previousNode)
-        path.push(node)
         if (node.isWall) continue
         if (node.isEnd) break
         setTimeout(() => {
@@ -182,6 +336,9 @@ export default {
       }
       return nodes
     },
+    manhattanDistance: function (currentNode, goalNode) {
+      return Math.abs(currentNode.row - goalNode.row) + Math.abs(currentNode.col - goalNode.col)
+    },
     sortNodesByDistance: function (unvisitedNodes) {
       unvisitedNodes.sort((nodeA, nodeB) => nodeA.distance - nodeB.distance)
     },
@@ -199,16 +356,18 @@ export default {
       if (row < graph.length - 1) neighbours.push(graph[row + 1][col])
       if (col > 0) neighbours.push(graph[row][col - 1])
       if (col < graph[0].length - 1) neighbours.push(graph[row][col + 1])
-      return neighbours.filter(neighbour => !neighbour.isVisited)
+      return neighbours.filter(neighbour => (!neighbour.isVisited && !neighbour.isWall))
     },
     shortestPath: function (finishNode) {
       const nodesInShortestPath = []
       let currentNode = finishNode
       while (currentNode !== null) {
+        console.log(currentNode)
         nodesInShortestPath.unshift(currentNode)
         currentNode.isShort = true
         currentNode = currentNode.previousNode
       }
+      console.log(nodesInShortestPath)
       return nodesInShortestPath
     },
     resetBoard: function () {
@@ -219,7 +378,7 @@ export default {
           node.classList.remove('wallNode', 'shortNode', 'visitedNode')
         }
       }
-      this.createGraph()
+      this.createGraph(this.numRows, this.numCols)
     }
   }
 
@@ -248,10 +407,10 @@ export default {
   animation-play-state: running;
 }
 .startNode {
-  background-color: yellow;
+  background-image: url(../assets/start.svg);
 }
 .endNode {
-  background-color: purple;
+  background-image: url(../assets/finish.svg);
 }
 .visitedNode {
   animation-name: visitedAnimation;
@@ -313,11 +472,11 @@ export default {
   }
   50% {
     transform: scale(1.2);
-    background-color: var(--colour-gray-dark-3);
+    background-color: var(--colour-gray-dark-2);
   }
   100% {
     transform: scale(1.0);
-    background-color: var(--colour-gray-dark-3);
+    background-color: var(--colour-gray-dark-1);
   }
 }
 
@@ -374,5 +533,6 @@ export default {
   flex-wrap: nowrap;
   background-color: white;
   border: 1px solid lightblue;
+  margin-top: 3em;
 }
 </style>
