@@ -1,14 +1,30 @@
 <template>
   <div class="page-container">
+    <tutorial class="modal-mask" v-if='showTutorial'></tutorial>
     <grid></grid>
   </div>
 </template>
 
 <script>
 import Grid from './components/Grid.vue'
+import Tutorial from './components/Tutorial.vue'
+
+import { eventBus } from './main'
+
 export default {
+  created () {
+    eventBus.$on('showTutorial', bool => {
+      this.showTutorial = bool
+    })
+  },
+  data: function () {
+    return {
+      showTutorial: true
+    }
+  },
   components: {
-    Grid
+    Grid,
+    Tutorial
   }
 }
 </script>
@@ -48,6 +64,17 @@ html {
   flex-direction: column;
   background-color: var(--colour-gray-light-1);
   min-height: 100vh;
+}
+
+.modal-mask {
+  position: fixed;
+  z-index: 200;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.3 ease;
 }
 
 </style>

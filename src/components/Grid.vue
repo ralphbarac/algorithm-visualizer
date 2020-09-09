@@ -4,11 +4,18 @@
     <div class="header-container">
       <h1 class="title">Pathfinding Visualizer</h1>
       <div class="button-container">
-        <button class="button" @click="dijkstras()">Dijkstras</button>
-        <button class="button" @click="depthFirstSearch(), dfs=true">DFS</button>
-        <button class="button" @click="astar()">A* Search</button>
+        <ul class="buttons">
+          <li @mouseenter="showDropdown=true" class="button button-dropdown">Algorithm
+            <div class="dropdown-content" v-if='showDropdown' @mouseleave="showDropdown=false">
+              <ul class="drop-options">
+                <li class="alg-option" v-for='alg in algorithms' :key='alg' @click="setAlgorithm(alg)">{{ alg }}</li>
+              </ul>
+            </div>
+          </li>
+          <li :algorithm='algorithm' class="button" @click="visualize(algorithm)">Visualize {{ algorithm }}</li>
+          <li class="button" @click="resetBoard()">Reset Board</li>
+        </ul>
         <!-- <button class="button" @click="divide(nodes, numRows, numCols)">Generate Maze</button> -->
-        <button class="button" @click="resetBoard()">Reset Board</button>
       </div>
     </div>
   </header>
@@ -51,7 +58,10 @@ export default {
       numCols: 65,
       isDrawing: false,
       running: false,
-      dfs: false
+      dfs: false,
+      algorithm: '',
+      algorithms: ['Dijkstras', 'Depth First Search', 'A* Search'],
+      showDropdown: false
     }
   },
   methods: {
@@ -95,6 +105,7 @@ export default {
 
       while (openList.length > 0) {
         const node = this.getLowestF(openList)
+        this.animateVisitedNode(node)
         if (node.isEnd) {
           this.animateShortestPath(node)
           return
@@ -108,7 +119,6 @@ export default {
           neighbour.h = this.manhattanDistance(neighbour, finishNode)
           neighbour.f = neighbour.g + neighbour.h
           neighbour.isVisited = true
-          this.animateVisitedNode(neighbour)
           if (!openList.includes(neighbour)) { openList.push(neighbour) }
         })
       }
@@ -358,6 +368,13 @@ export default {
       if (col < graph[0].length - 1) neighbours.push(graph[row][col + 1])
       return neighbours.filter(neighbour => (!neighbour.isVisited && !neighbour.isWall))
     },
+    setAlgorithm: function (algorithm) {
+      if (algorithm === 'Depth First Search') {
+        algorithm = 'DFS'
+      }
+      this.algorithm = algorithm
+      this.showDropdown = false
+    },
     shortestPath: function (finishNode) {
       const nodesInShortestPath = []
       let currentNode = finishNode
@@ -369,6 +386,16 @@ export default {
       }
       console.log(nodesInShortestPath)
       return nodesInShortestPath
+    },
+    visualize: function (algorithm) {
+      if (algorithm === 'Dijkstras') {
+        this.dijkstras()
+      } else if (algorithm === 'DFS') {
+        this.depthFirstSearch()
+        this.dfs = true
+      } else if (algorithm === 'A* Search') {
+        this.astar()
+      }
     },
     resetBoard: function () {
       this.dfs = false
@@ -492,39 +519,51 @@ export default {
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  background-color: var(--colour-gray-dark-2);
+  padding-top: 1em;
+  padding-bottom: 1em;
+  background-color: var(--colour-gray-dark-1);
   }
 
 .header-container {
   display: flex;
   flex-direction: row;
   align-items: center;
-  width: 95%;
+  justify-content: space-between;
+  width: 90%;
 }
 
 .title {
-  color: var(--colour-gray-light-1);
+  color: var(--colour-primary);
   font-size: 2.2em;
 }
 
+.button-container {
+  width: 30%;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
 .button {
-  border-radius: 6px;
-  border: 1px solid var(--colour-gray-light-1);
-  height: 2em;
-  width: 8em;
-  margin: 1em;
-  background-color: white;
+  border: none;
+  background-color: var(--colour-gray-dark-1);
   cursor: pointer;
+  font-size: 1.7em;
+  color: var(--colour-gray-light-1);
 }
 
 .button:hover {
-  background-color: var(--colour-gray-dark-3);
-  border: 1px solid white;
+  color: var(--colour-primary);
 }
 
 .information {
   font-size: 1.5em;
   color: var(--colour-gray-dark-1);
+  margin-top: 1em;
+  margin-bottom: -1em;
 }
 
 .grid tbody{
@@ -535,4 +574,27 @@ export default {
   border: 1px solid lightblue;
   margin-top: 3em;
 }
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dropdown-content {
+  position: absolute;
+  z-index: 1;
+  background-color: var(--colour-gray-dark-1);
+  margin-top: 1em;
+}
+
+.alg-option {
+  color: var(--colour-gray-light-1);
+  height: 2em;
+}
+
+.alg-option:hover {
+  background-color: var(--colour-gray-dark-2);
+}
+
 </style>
