@@ -1,5 +1,8 @@
 # algorithm-visualizer
 
+## Preamble
+I made this fresh out of university as a fun little project to help land me a job. The code is obviously pretty bad - but it did its job. I'm leaving it up cause it's a neat little project and I think it's a pretty good one for aspiring devs to mimic for their first jobs as well.
+
 ## Description
 
 This project is the base for a pathfinding algorithm visualizer. It currently runs Dijkstra's algorithm on the graph from start (the red) to end (the green) nodes, highlighting in yellow the shortest path and in light blue every visited node.
